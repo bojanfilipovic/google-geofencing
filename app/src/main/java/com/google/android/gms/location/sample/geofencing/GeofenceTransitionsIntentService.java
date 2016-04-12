@@ -26,20 +26,15 @@ import android.graphics.Color;
 import android.os.Environment;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
-import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -79,10 +74,6 @@ public class GeofenceTransitionsIntentService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
 
-        //transition type test
-        int transitionYEAH =    intent.getIntExtra("com.google.android.location.intent.extra.transition", -1);
-        Log.i("YEAHHH", String.valueOf(transitionYEAH));
-
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent.hasError()) {
             String errorMessage = GeofenceErrorMessages.getErrorString(this,
@@ -97,25 +88,23 @@ public class GeofenceTransitionsIntentService extends IntentService {
 
         // Test that the reported transition was of interest.
         if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ||
-                geofenceTransition == Geofence.GEOFENCE_TRANSITION_DWELL){
-                //geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT) {
+                geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT ||
+                    geofenceTransition == Geofence.GEOFENCE_TRANSITION_DWELL){
 
             // Get the geofences that were triggered. A single event can trigger multiple geofences.
             List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
             HashMap<String, String> geofenceNames = new HashMap<String, String>();
 
             SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
-            String triggeredGeofence = sdf.format(new Date());
+            String geofenceTriggeredDate = sdf.format(new Date());
 
             for (Geofence geofence : triggeringGeofences) {
-                Log.i("info", String.valueOf(geofence));
+                Log.i("Triggered geof info:", String.valueOf(geofence));
                 //getRequestId gives back the name of the geofence, e.g. 'Plot 1'
-                //iterates through triggered geofences, save them and datetime triggered?
-                geofenceNames.put(geofence.getRequestId(), triggeredGeofence);
+                geofenceNames.put(geofence.getRequestId(), geofenceTriggeredDate);
 
                 // Get the transition type.
                 geofenceTransition = geofencingEvent.getGeofenceTransition();
-                Log.i("geotransition for loop", String.valueOf(geofenceTransition) + " name: " + String.valueOf(geofence.getRequestId() ));
             }
 
             File sdcard = Environment.getExternalStoragePublicDirectory("");
@@ -138,14 +127,9 @@ public class GeofenceTransitionsIntentService extends IntentService {
 
             // Get the transition details as a String.
             String geofenceTransitionDetails = getGeofenceTransitionDetails(this, geofenceTransition, triggeringGeofences);
-
-            Log.i("size", String.valueOf(triggeringGeofences.size()));
-            Log.i("transdetails", geofenceTransitionDetails);
-
-            // Send notification and log the transition details.
+            Log.i("geof.trigg. at once #", String.valueOf(triggeringGeofences.size()));
 
             sendNotification(geofenceTransitionDetails);
-            Log.i(TAG, geofenceTransitionDetails);
         } else {
             // Log the error.
             Log.e(TAG, getString(R.string.geofence_transition_invalid_type, geofenceTransition));
@@ -169,7 +153,6 @@ public class GeofenceTransitionsIntentService extends IntentService {
         for (Geofence geofence : triggeringGeofences) {
             triggeringGeofencesIdsList.add(geofence.getRequestId());
         }
-        //String triggeringGeofencesIdsString = TextUtils.join(", ",  triggeringGeofencesIdsList);
         Log.i("notification:", geofenceTransitionString + triggeringGeofencesIdsList );
         return geofenceTransitionString + triggeringGeofencesIdsList;
     }
@@ -199,8 +182,7 @@ public class GeofenceTransitionsIntentService extends IntentService {
         builder.setSmallIcon(R.drawable.plot_icon)
                 // In a real app, you may want to use a library like Volley
                 // to decode the Bitmap.
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(),
-                        R.drawable.plot_icon))
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.plot_icon))
                 .setColor(Color.rgb(255,165,0))         //Orange
                 .setContentTitle(notificationDetails)
                 .setContentText(getString(R.string.geofence_transition_notification_text))

@@ -24,7 +24,6 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -40,6 +39,7 @@ import com.google.android.gms.location.GeofencingApi;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -71,6 +71,7 @@ public class MainActivity extends ActionBarActivity implements
      */
     protected ArrayList<Geofence> mGeofenceListEnter;
     protected ArrayList<Geofence> mGeofenceListDwell;
+    protected ArrayList<Geofence> mGeofenceListExit;
 
     /**
      * Used to keep track of whether geofences were added.
@@ -90,8 +91,6 @@ public class MainActivity extends ActionBarActivity implements
     // Buttons for kicking off the process of adding or removing geofences.
     private Button mAddGeofencesButton;
     private Button mRemoveGeofencesButton;
-    private TextView activeGeofences;
-    private TextView geoList;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -101,12 +100,11 @@ public class MainActivity extends ActionBarActivity implements
         // Get the UI widgets.
         mAddGeofencesButton = (Button) findViewById(R.id.add_geofences_button);
         mRemoveGeofencesButton = (Button) findViewById(R.id.remove_geofences_button);
-        geoList = (TextView) findViewById(R.id.geofenceList);
-        activeGeofences = (TextView) findViewById(R.id.activeGeofences);
 
         // Empty list for storing geofences.
         mGeofenceListEnter = new ArrayList<Geofence>();
         mGeofenceListDwell = new ArrayList<Geofence>();
+        mGeofenceListExit = new ArrayList<Geofence>();
 
         // Initially set the PendingIntent used in addGeofences() and removeGeofences() to null.
         mGeofencePendingIntent = null;
@@ -118,11 +116,71 @@ public class MainActivity extends ActionBarActivity implements
         mGeofencesAdded = mSharedPreferences.getBoolean(Constants.GEOFENCES_ADDED_KEY, false);
         setButtonsEnabledState();
 
-        // Get the geofences used. Geofence data is hard coded in this sample.
-        populateGeofenceList();
+        if (Constants.GEOFENCE_LIST_ENTER != null) {
+            // Get the geofences used. Geofence data is hard coded in this sample.
+            populateGeofenceList(Constants.GEOFENCE_LIST_ENTER, mGeofenceListEnter, Geofence.GEOFENCE_TRANSITION_ENTER);
+        }
+        if (Constants.GEOFENCE_LIST_EXIT != null) {
+            populateGeofenceList(Constants.GEOFENCE_LIST_EXIT, mGeofenceListExit, Geofence.GEOFENCE_TRANSITION_EXIT);
+        }
+        if (Constants.GEOFENCE_LIST_DWELL != null) {
+            populateGeofenceList(Constants.GEOFENCE_LIST_DWELL, mGeofenceListDwell, Geofence.GEOFENCE_TRANSITION_DWELL);
+        }
 
         // Kick off the request to build GoogleApiClient.
         buildGoogleApiClient();
+    }
+
+    /**
+     * Gets a PendingIntent to send with the request to add or remove Geofences. Location Services
+     * issues the Intent inside this PendingIntent whenever a geofence transition occurs for the
+     * current list of geofences.
+     *
+     * @return A PendingIntent for the IntentService that handles geofence transitions.
+     */
+    private PendingIntent getGeofencePendingIntent() {
+        // Reuse the PendingIntent if we already have it.
+        if (mGeofencePendingIntent != null) {
+            return mGeofencePendingIntent;
+        }
+        Intent intent = new Intent(this, GeofenceTransitionsIntentService.class);
+        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
+        // addGeofences() and removeGeofences().
+        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    /**
+     * This sample hard codes geofence data. A real app might dynamically create geofences based on
+     * the user's location.
+     */
+    public void populateGeofenceList(HashMap<String, LatLng> geofences, ArrayList<Geofence> geofenceList, int transitionType) {
+
+        for (Map.Entry<String, LatLng> entry : geofences.entrySet()) {
+
+            geofenceList.add(new Geofence.Builder()
+                    // Set the request ID of the geofence. This is a string to identify this
+                    // geofence.
+                    .setRequestId(entry.getKey())
+                            // Set the circular region of this geofence.
+                    .setCircularRegion(
+                            entry.getValue().latitude,
+                            entry.getValue().longitude,
+                            Constants.GEOFENCE_RADIUS_IN_METERS
+                    )
+
+                            // Set the expiration duration of the geofence. This geofence gets automatically
+                            // removed after this period of time.
+                    .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+
+                            // Set the transition types of interest. Alerts are only generated for these
+                            // transition. We track entry and exit transitions in this sample.
+                    .setTransitionTypes(transitionType)
+                            //interval between entering and the geofence and triggering dwelling in ms
+                    .setLoiteringDelay(3000)
+                            // Create the geofence.
+                    .build());
+
+        }
     }
 
     /**
@@ -181,11 +239,12 @@ public class MainActivity extends ActionBarActivity implements
         // The INITIAL_TRIGGER_ENTER flag indicates that geofencing service should trigger a
         // GEOFENCE_TRANSITION_ENTER notification when the geofence is added and if the device
         // is already inside that geofence.
-        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL | GeofencingRequest.INITIAL_TRIGGER_ENTER);
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER | GeofencingRequest.INITIAL_TRIGGER_EXIT | GeofencingRequest.INITIAL_TRIGGER_DWELL );
 
         // Add the geofences to be monitored by geofencing service.
         builder.addGeofences(mGeofenceListEnter);
         builder.addGeofences(mGeofenceListDwell);
+        builder.addGeofences(mGeofenceListExit);
 
         // Return a GeofencingRequest.
         return builder.build();
@@ -266,93 +325,6 @@ public class MainActivity extends ActionBarActivity implements
                     status.getStatusCode());
             Log.e(TAG, errorMessage);
         }
-    }
-
-    /**
-     * Gets a PendingIntent to send with the request to add or remove Geofences. Location Services
-     * issues the Intent inside this PendingIntent whenever a geofence transition occurs for the
-     * current list of geofences.
-     *
-     * @return A PendingIntent for the IntentService that handles geofence transitions.
-     */
-    private PendingIntent getGeofencePendingIntent() {
-        // Reuse the PendingIntent if we already have it.
-        if (mGeofencePendingIntent != null) {
-            return mGeofencePendingIntent;
-        }
-        Intent intent = new Intent(this, GeofenceTransitionsIntentService.class);
-        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
-        // addGeofences() and removeGeofences().
-        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-    }
-
-    /**
-     * This sample hard codes geofence data. A real app might dynamically create geofences based on
-     * the user's location.
-     */
-    public void populateGeofenceList() {
-
-        for (Map.Entry<String, LatLng> entry : Constants.GEOFENCE_LIST_ENTER.entrySet()) {
-
-            Log.i("entry key", entry.getKey());
-            //add to tv
-            geoList.append("\n" + entry.getKey());
-
-            mGeofenceListEnter.add(new Geofence.Builder()
-                    // Set the request ID of the geofence. This is a string to identify this
-                    // geofence.
-                    .setRequestId(entry.getKey())
-                            // Set the circular region of this geofence.
-                    .setCircularRegion(
-                            entry.getValue().latitude,
-                            entry.getValue().longitude,
-                            Constants.GEOFENCE_RADIUS_IN_METERS
-                    )
-
-                            // Set the expiration duration of the geofence. This geofence gets automatically
-                            // removed after this period of time.
-                    .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-
-                            // Set the transition types of interest. Alerts are only generated for these
-                            // transition. We track entry and exit transitions in this sample.
-                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                            //Geofence.GEOFENCE_TRANSITION_ENTER |
-                            // Create the geofence.
-                    .build());
-
-        }
-
-        for (Map.Entry<String, LatLng> entry : Constants.GEOFENCE_LIST_DWELL.entrySet()) {
-
-            Log.i("entry key", entry.getKey());
-            //add to tv
-            geoList.append("\n" + entry.getKey());
-
-            mGeofenceListDwell.add(new Geofence.Builder()
-                    // Set the request ID of the geofence. This is a string to identify this
-                    // geofence.
-                    .setRequestId(entry.getKey())
-                            // Set the circular region of this geofence.
-                    .setCircularRegion(
-                            entry.getValue().latitude,
-                            entry.getValue().longitude,
-                            Constants.GEOFENCE_RADIUS_IN_METERS
-                    )
-
-                            // Set the expiration duration of the geofence. This geofence gets automatically
-                            // removed after this period of time.
-                    .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-
-                            // Set the transition types of interest. Alerts are only generated for these
-                            // transition. We track entry and exit transitions in this sample.
-                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_DWELL)
-                            //Geofence.GEOFENCE_TRANSITION_ENTER |
-                            // Create the geofence.
-                    .setLoiteringDelay(3000)
-                    .build());
-
-        }
-        activeGeofences.setText("List of geofences and size: " + Constants.GEOFENCE_LIST_DWELL.size() +", "+Constants.GEOFENCE_LIST_ENTER.size() );
     }
 
     /**

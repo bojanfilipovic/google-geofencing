@@ -45,7 +45,7 @@ public final class Constants {
      */
     public static final long GEOFENCE_EXPIRATION_IN_MILLISECONDS =
             GEOFENCE_EXPIRATION_IN_HOURS * 60 * 60 * 1000;
-    public static final float GEOFENCE_RADIUS_IN_METERS = 1000;
+    public static final float GEOFENCE_RADIUS_IN_METERS = 300;
 
     /**
      * Map for storing information about geofences
@@ -53,32 +53,22 @@ public final class Constants {
     public static final HashMap<String, LatLng> GEOFENCE_LIST_ENTER = new HashMap<String, LatLng>();
     static {
         GEOFENCE_LIST_ENTER.put("Enter_Plot", new LatLng(52.343925, 4.916580));
-        //GEOFENCE_LIST.put("Enter_Biking", new LatLng(52.324698, 4.894656));
         GEOFENCE_LIST_ENTER.put("Enter_OnTrain1", new LatLng(52.340852, 4.920394));
-        //GEOFENCE_LIST.put("Enter_Highway", new LatLng(52.337227, 4.940414));
-        GEOFENCE_LIST_ENTER.put("Exit_Plot", new LatLng(52.343874, 4.916344));
-        //GEOFENCE_LIST.put("Exit_Biking", new LatLng(52.334854, 4.904848));
-        //GEOFENCE_LIST.put("Exit_OnTrain1", new LatLng(52.337044, 4.923495));
-        GEOFENCE_LIST_ENTER.put("Exit_OnTrain2", new LatLng(52.352040, 4.914708));
-        //GEOFENCE_LIST.put("Exit_Highway", new LatLng(52.330579, 4.923120));
-        //GEOFENCE_LIST.put("Dwell_Plot", new LatLng(52.343769, 4.916436));
-        //GEOFENCE_LIST.put("Dwell_TrainStation", new LatLng(52.346633, 4.917991));
-        //GEOFENCE_LIST.put("Dwell_Center", new LatLng(52.372652, 4.893186));
-        //GEOFENCE_LIST.put("Enter_OnTrain2", new LatLng(52.359300, 4.929214));
         GEOFENCE_LIST_ENTER.put("False_Positive_Geofence", new LatLng(52.346643, 4.912654));
-
     }
 
     public static final HashMap<String, LatLng> GEOFENCE_LIST_DWELL = new HashMap<String, LatLng>();
     static {
-        //GEOFENCE_LIST_DWELL.put("Enter_Plot", new LatLng(52.343925, 4.916580));
-        //GEOFENCE_LIST_DWELL.put("Enter_OnTrain1", new LatLng(52.340852, 4.920394));
-        GEOFENCE_LIST_DWELL.put("Exit_Plot", new LatLng(52.343874, 4.916344));
-        GEOFENCE_LIST_DWELL.put("Exit_OnTrain1", new LatLng(52.337044, 4.923495));
-        //GEOFENCE_LIST_DWELL.put("Exit_OnTrain2", new LatLng(52.352040, 4.914708));
         GEOFENCE_LIST_DWELL.put("Dwell_Plot", new LatLng(52.343769, 4.916436));
         GEOFENCE_LIST_DWELL.put("Dwell_TrainStation", new LatLng(52.346633, 4.917991));
-        //GEOFENCE_LIST_DWELL.put("False_Positive_Geofence", new LatLng(52.346643, 4.912654));
+    }
 
+    public static final HashMap<String, LatLng> GEOFENCE_LIST_EXIT = new HashMap<String, LatLng>();
+    static {
+        //GEOFENCE_LIST_DWELL.put("Enter_Plot", new LatLng(52.343925, 4.916580));
+        //GEOFENCE_LIST_DWELL.put("Enter_OnTrain1", new LatLng(52.340852, 4.920394));
+        GEOFENCE_LIST_EXIT.put("Exit_Plot", new LatLng(52.343874, 4.916344));
+        GEOFENCE_LIST_EXIT.put("Exit_OnTrain1", new LatLng(52.337044, 4.923495));
+        GEOFENCE_LIST_ENTER.put("Exit_OnTrain2", new LatLng(52.352040, 4.914708));
     }
 }

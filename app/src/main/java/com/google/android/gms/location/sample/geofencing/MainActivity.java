@@ -19,8 +19,9 @@ package com.google.android.gms.location.sample.geofencing;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -36,7 +37,15 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.GeofencingApi;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,8 +65,8 @@ import java.util.Map;
  * {@link com.google.android.gms.location.GeofencingApi#removeGeofences(GoogleApiClient, java.util.List)}  removeGeofences()}
  * becomes available.
  */
-public class MainActivity extends ActionBarActivity implements
-        ConnectionCallbacks, OnConnectionFailedListener, ResultCallback<Status> {
+public class MainActivity extends FragmentActivity implements
+        ConnectionCallbacks, OnConnectionFailedListener, ResultCallback<Status>, OnMapReadyCallback {
 
     protected static final String TAG = "MainActivity";
 
@@ -65,6 +74,8 @@ public class MainActivity extends ActionBarActivity implements
      * Provides the entry point to Google Play services.
      */
     protected GoogleApiClient mGoogleApiClient;
+    private GoogleMap mMap;
+    private ArrayList<CircleOptions> mCircles;
 
     /**
      * The list of geofences used in this sample.
@@ -96,6 +107,9 @@ public class MainActivity extends ActionBarActivity implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
         // Get the UI widgets.
         mAddGeofencesButton = (Button) findViewById(R.id.add_geofences_button);
@@ -154,7 +168,6 @@ public class MainActivity extends ActionBarActivity implements
      * the user's location.
      */
     public void populateGeofenceList(HashMap<String, LatLng> geofences, ArrayList<Geofence> geofenceList, int transitionType) {
-
         for (Map.Entry<String, LatLng> entry : geofences.entrySet()) {
 
             geofenceList.add(new Geofence.Builder()
@@ -341,4 +354,34 @@ public class MainActivity extends ActionBarActivity implements
             mRemoveGeofencesButton.setEnabled(false);
         }
     }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        googleMap.setMyLocationEnabled(true);
+
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(52.343925, 4.916580), 13.0f));  //plot office
+        drawCircles(Constants.GEOFENCE_LIST_ENTER, 0x503848F2);     //color is coded as ARGB
+        drawCircles(Constants.GEOFENCE_LIST_DWELL, 0x5048f238);
+        drawCircles(Constants.GEOFENCE_LIST_EXIT, 0x50f23848);
+
+    }
+
+    public void drawCircles(HashMap<String, LatLng> geofences, int color){
+
+        for (Map.Entry<String, LatLng> entry : geofences.entrySet()) {
+            Circle circle = mMap.addCircle(new CircleOptions()
+                    .center(new LatLng(entry.getValue().latitude, entry.getValue().longitude))
+                    .radius(Constants.GEOFENCE_RADIUS_IN_METERS)
+                    .strokeColor(Color.BLUE)
+                    .strokeWidth(5.0f)
+                    .fillColor(color));
+            Marker marker = mMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(entry.getValue().latitude, entry.getValue().longitude))
+                    .title(entry.getKey()));
+        }
+
+
+    }
+
 }

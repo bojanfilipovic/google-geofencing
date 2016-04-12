@@ -41,5 +41,10 @@ limitations under the License.
         </activity>
 
         <service android:name=".GeofenceTransitionsIntentService" />
+
+        <meta-data
+            android:name="com.google.android.maps.v2.API_KEY"
+            android:value="AIzaSyA9lLj1xXrouf9sEiM5SqXbE-C1xoxjXQs"/>
+
     </application>
 </manifest>

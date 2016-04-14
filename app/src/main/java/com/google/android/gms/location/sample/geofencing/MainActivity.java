@@ -23,6 +23,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -167,8 +168,8 @@ public class MainActivity extends FragmentActivity implements
      * This sample hard codes geofence data. A real app might dynamically create geofences based on
      * the user's location.
      */
-    public void populateGeofenceList(HashMap<String, LatLng> geofences, ArrayList<Geofence> geofenceList, int transitionType) {
-        for (Map.Entry<String, LatLng> entry : geofences.entrySet()) {
+    public void populateGeofenceList(HashMap<String, Constants.LatLngAndRadius> geofences, ArrayList<Geofence> geofenceList, int transitionType) {
+        for (Map.Entry<String, Constants.LatLngAndRadius> entry : geofences.entrySet()) {
 
             geofenceList.add(new Geofence.Builder()
                     // Set the request ID of the geofence. This is a string to identify this
@@ -184,15 +185,15 @@ public class MainActivity extends FragmentActivity implements
                             // Set the expiration duration of the geofence. This geofence gets automatically
                             // removed after this period of time.
                     .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
-
                             // Set the transition types of interest. Alerts are only generated for these
                             // transition. We track entry and exit transitions in this sample.
                     .setTransitionTypes(transitionType)
+                            //Time between registering geofence transition and notification in ms
+                    .setNotificationResponsiveness(Constants.NOTIFICATION_RESPONSIVENESS_IN_MS)
                             //interval between entering and the geofence and triggering dwelling in ms
-                    .setLoiteringDelay(3000)
+                    .setLoiteringDelay(Constants.LOITERING_DELAY_IN_MS)      //5 minutes
                             // Create the geofence.
                     .build());
-
         }
     }
 
@@ -252,7 +253,7 @@ public class MainActivity extends FragmentActivity implements
         // The INITIAL_TRIGGER_ENTER flag indicates that geofencing service should trigger a
         // GEOFENCE_TRANSITION_ENTER notification when the geofence is added and if the device
         // is already inside that geofence.
-        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER | GeofencingRequest.INITIAL_TRIGGER_EXIT | GeofencingRequest.INITIAL_TRIGGER_DWELL );
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER | GeofencingRequest.INITIAL_TRIGGER_DWELL );
 
         // Add the geofences to be monitored by geofencing service.
         builder.addGeofences(mGeofenceListEnter);
@@ -367,12 +368,12 @@ public class MainActivity extends FragmentActivity implements
 
     }
 
-    public void drawCircles(HashMap<String, LatLng> geofences, int color){
+    public void drawCircles(HashMap<String, Constants.LatLngAndRadius> geofences, int color){
 
-        for (Map.Entry<String, LatLng> entry : geofences.entrySet()) {
+        for (Map.Entry<String, Constants.LatLngAndRadius> entry : geofences.entrySet()) {
             Circle circle = mMap.addCircle(new CircleOptions()
                     .center(new LatLng(entry.getValue().latitude, entry.getValue().longitude))
-                    .radius(Constants.GEOFENCE_RADIUS_IN_METERS)
+                    .radius(entry.getValue().radius)
                     .strokeColor(Color.BLUE)
                     .strokeWidth(5.0f)
                     .fillColor(color));
